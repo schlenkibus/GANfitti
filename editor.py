@@ -47,7 +47,14 @@ def loadLabels():
         print("ERROR: Labels are not unique")
         sys.exit(1)
 
-    print(f"Found {len(rawLabelNames)} Labels")
+    #count number of lines in each labelFile
+    labelCount = 0
+    for labelFile in labelFiles:
+        with open(labelFile, "r") as f:
+            labelCount += len(f.readlines())
+    
+    #print labelCounts
+    print(f"Found {len(rawLabelNames)} labeled files with {labelCount} labels")
 
 imagePaths = getFilesRecursively(imageDirectoryPath)
 imageNames = getBaseNames(imagePaths)
@@ -161,6 +168,8 @@ def loadNextImage():
     if nextImage == None:
         print("ERROR: No images left to label")
         sys.exit(1)
+    else:
+        print(f"Next image: {nextImage}")
 
     #load image
 

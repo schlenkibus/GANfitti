@@ -14,9 +14,7 @@ tools for work on the GANfitti dataset
 ## 2. Dataset
 
 ### 2.1 Collection
-Berlin Spring 2022
-~25 KM
-one person, one camera
+Berlin, Kassel Spring 2022
 
 
 ### 2.2 Cropping

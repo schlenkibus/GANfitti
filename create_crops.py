@@ -65,6 +65,11 @@ for iter, labelFile in enumerate(rawLabelNames):
     size = image.size
 
     for it, line in enumerate(labelLines):
+        imgName = outputPath + "/" + rawLabelNames[iter] + "_" + str(it) + ".jpg"
+        if os.path.exists(imgName):
+            print(f"{imgName} already exists. Skipping...")
+            continue
+
         #split into startX,startY,endX,endY
         line = line.split(",")
         startX = int(float(line[0]) * size[0])
@@ -74,6 +79,6 @@ for iter, labelFile in enumerate(rawLabelNames):
         print(f"{labelFile}:{it} {startX} {startY} {endX} {endY}")
         #crop image
         croppedImage = image.crop((startX, startY, endX, endY))
-        croppedImage.save(outputPath + "/" + rawLabelNames[iter] + "_" + str(it) + ".jpg")
+        croppedImage.save(imgName)
 
     print(str(iter) + ": " + labelFile + " -> " + imagePath)
