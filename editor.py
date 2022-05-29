@@ -68,6 +68,9 @@ currentImageId = None
 currentImageName = None
 currentLabelBuffer = []
 
+crossHairH = None
+crossHairV = None
+
 #check if all files are unique
 if len(rawImageNames) != len(set(rawImageNames)):
     print("ERROR: Images are not unique")
@@ -114,6 +117,8 @@ def drag(event):
     global canvas
     global rectID
     global startPosition
+
+    mouseMove(event)
 
     if rectID:
         canvas.delete(rectID)
@@ -194,6 +199,21 @@ def saveFullLabel():
     currentLabelBuffer.append(f"{0},{0},{1},{1}")
     loadNextImage()
 
+def mouseMove(event):
+    global canvas
+    global crossHairH
+    global crossHairV
+    print(f"mouse move: {event.x}, {event.y}")
+
+    if crossHairH:
+        canvas.delete(crossHairH)
+    
+    if crossHairV:
+        canvas.delete(crossHairV)
+    
+    crossHairH = canvas.create_line(event.x, 0, event.x, canvas.winfo_height(), fill="red")
+    crossHairV = canvas.create_line(0, event.y, canvas.winfo_width(), event.y, fill="red")
+
 root = Tk()
 root.title("GANfitti AOI-Tool")
 root.geometry("1200x900")
@@ -201,6 +221,7 @@ canvas = Canvas(root, width=1200, height=800)
 canvas.bind("<Button-1>", pressed)
 canvas.bind("<ButtonRelease-1>", released)
 canvas.bind("<B1-Motion>", drag)
+canvas.bind("<Motion>", mouseMove)
 root.bind("<Key>", key)
 next = Button(root, text="Save Labels and load Next (N)", command=loadNextImage)
 fullImage = Button(root, text="Save Full Image Label and load Next (F)", command=saveFullLabel)
