@@ -31,3 +31,12 @@ def dropExtension(files):
 
 def dropExtension_file(file):
     return os.path.splitext(file)[0]
+
+def addExtensionToFiles(files, extension):
+    ret = []
+    for file in files:
+        if "." in extension:
+            ret.append(f"{file}{extension}")
+        else:
+            ret.append(f"{file}.{extension}")
+    return ret
