@@ -29,3 +29,8 @@ use padd_all_images_512.sh -> or equvalent script with changed size 256 1024 etc
     python3 editor.py -i ~/Pictures/GANfitti/raw_graff_data/ -o ~/Pictures/GANfitti/labels`
 
     use yolov5 to test if labeling can already be automated
+
+
+# label texts
+    
+    python3 create_text_labels_editor.py -i ~/Pictures/GANfitti/generated_512_v3/ -o ~/Pictures/GANfitti/text_labels/

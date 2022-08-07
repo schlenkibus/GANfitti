@@ -8,6 +8,8 @@
             .progress {
                 background-color: lightgreen;
                 display: block;
+                overflow: visible;
+                text-align: center;
             }
 
             .hidden {
@@ -39,8 +41,8 @@
         var siteWidth = window.innerWidth;
         var done = document.getElementById("done").innerHTML;
         var total = document.getElementById("total").innerHTML;
-        var percentDone = Number(done) / Number(total);
+        var percentDone = (Number(done) / Number(total)) * 100;
         progressBar.innerHTML = String(percentDone.toFixed(2)) + "% " + done + "/" + total;
-        progressBar.style.width = siteWidth * percentDone;
+        progressBar.style.width = siteWidth * (percentDone / 100);
     </script>
 </html>
