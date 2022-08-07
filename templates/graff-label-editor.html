@@ -1,0 +1,46 @@
+<html>
+    <head>
+        <meta charset="UTF-8"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Graffiti Labeling</title>
+        <link rel="stylesheet" href="https://unpkg.com/purecss@1.0.1/build/base-min.css">
+        <style>
+            .progress {
+                background-color: lightgreen;
+                display: block;
+            }
+
+            .hidden {
+                display: none;
+            }
+        </style>
+    </head>
+
+    <body>
+        <div id="pb" class="progress"></div>
+        <h2>Describe this photo:</h2>
+        <img src="/current-image">
+        <div id="done" class="hidden">{{done}}</div>
+        <div id="total" class="hidden">{{total_avail}}</div>
+        <div id='upload-container'>
+            <form id = "upload-form" action = "/set-label" method="POST" enctype = "multipart/form-data">
+                <label for="text">Literal Text:</label><input name = "text">
+                <label for="background">Background Texture:</label><input name="background">
+                <label for="fill">Fill Color:</label><input name="fill">
+                <label for="outline">Outline Color:</label><input name="outline">
+                <label for="style">Genral Style:</label><input name="style">
+                <label for="highlights">Highlights Color:</label><input name="highlights">
+                <input type = "submit"/>
+            </form>
+        </div>
+    </body>
+    <script>
+        var progressBar = document.getElementById("pb");
+        var siteWidth = window.innerWidth;
+        var done = document.getElementById("done").innerHTML;
+        var total = document.getElementById("total").innerHTML;
+        var percentDone = Number(done) / Number(total);
+        progressBar.innerHTML = String(percentDone.toFixed(2)) + "% " + done + "/" + total;
+        progressBar.style.width = siteWidth * percentDone;
+    </script>
+</html>

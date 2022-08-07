@@ -77,24 +77,67 @@ def getNextImageToLabelPath():
     print(fullPath)
     return fullPath
 
-root = Tk()
-root.title("GANfitti Text-Label-Tool")
-root.geometry("1200x900")
-canvas = Canvas(root, width=1200, height=800)
-canvas.bind("<Button-1>", pressed)
-canvas.bind("<ButtonRelease-1>", released)
-canvas.bind("<B1-Motion>", drag)
-canvas.bind("<Motion>", mouseMove)
-root.bind("<Key>", key)
-next = Button(root, text="Save Labels and load Next (N)", command=loadNextImage)
-fullImage = Button(root, text="Save Full Image Label and load Next (F)", command=saveFullLabel)
-next.pack()
-fullImage.pack()
-canvas.pack()
+def getCurrentLabelOutPath():
+    nextImageToLabel = dropExtension_file(getNextImageToLabel())
+    fullPath = os.path.join(labelOutPath, nextImageToLabel)
+    fullPath += ".json"
+    print(fullPath)
+    return fullPath
+    
+def getNumDone():
+    labels = getFilesRecursively(labelOutPath, ".json")
+    return len(labels)
 
-loadNextImage()
+def getNumTotal():
+    images = getFilesRecursively(imageDirectoryPath, ".jpg")
+    return len(images)
 
-root.mainloop()
+from flask import Flask
+from flask.helpers import url_for
+from flask.json import JSONEncoder
+from flask import send_file, request, globals, redirect
+from flask.templating import render_template
+from flask.views import View
+import sys, os, uuid, copy
+import multiprocessing, subprocess
+import helper as FlaskHelpers
+
+app = Flask(__name__)
+
+@app.route('/current-image')
+def currentImage():
+    return send_file(getNextImageToLabelPath())
+
+@app.route('/', methods=['GET', 'POST'])
+def default():
+    return render_template("graff-label-editor.html", total_avail = getNumTotal(), done = getNumDone())
+	
+@app.route('/set-label', methods = ['POST'])
+def upload_label():
+    if request.method == 'POST':
+        app.logger.info(request.form)
+        dText = request.form["text"]
+        dBackground = request.form["background"]
+        dFill = request.form["fill"]
+        dOutline = request.form["outline"]
+        dStyle = request.form["style"]
+        dHighlights = request.form["highlights"]
+
+        data = {
+            "text": dText,
+            "background": dBackground,
+            "fill": dFill,
+            "outline": dOutline,
+            "style": dStyle,
+            "highlights": dHighlights
+        }
+
+        with open(getCurrentLabelOutPath(), "w") as f:
+            json.dump(data, f)
+
+    return redirect('/')
+
+app.run(host='0.0.0.0', debug=True)
 
 exit(2)
 
