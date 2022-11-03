@@ -26,7 +26,7 @@
         <div id="total" class="hidden">{{total_avail}}</div>
         <div id='upload-container'>
             <form id = "upload-form" action = "/set-label" method="POST" enctype = "multipart/form-data">
-                <label for="text">Literal Text:</label><input name = "text">
+                <label for="text">Literal Text:</label><input name = "text" autofocus>
                 <label for="background">Background Texture:</label><input name="background">
                 <label for="fill">Fill Color:</label><input name="fill">
                 <label for="outline">Outline Color:</label><input name="outline">
@@ -34,6 +34,7 @@
                 <label for="highlights">Highlights Color:</label><input name="highlights">
                 <input type = "submit"/>
             </form>
+            <p>äöüß</p>
         </div>
     </body>
     <script>
