@@ -51,7 +51,7 @@ def main():
     args = ap.parse_args()
     if args.config:
         for k, v in json.load(open(args.config)).items():
-            if getattr(args, k) == ap.get_default(k):
+            if hasattr(args, k) and getattr(args, k) == ap.get_default(k):  # unknown keys (e.g. "base") are documentation
                 setattr(args, k, v)
     out = Path(args.out); out.mkdir(parents=True, exist_ok=True)
     dev = "cuda"

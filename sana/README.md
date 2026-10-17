@@ -20,3 +20,10 @@ Grid layout: columns = kind (tag, throw-up, piece, character, street art, paste-
 ## Phase 1 result (2000 steps, rank 32, alpha 32, lr 1e-4, 4x accumulation, batch 1)
 Peak VRAM 1.37 GB allocated / 1.46 GB reserved (training), ~2.2 GB for grid rendering; text encoder caching peaks at 5.7 GB. 1.36 s per optimizer step (4 micro-batches), 45 min total.
 Grids in `grids/`: `base_step00000.jpg` is the untouched base model, `stepNNNNN.jpg` the checkpoints. Same seed and prompt per tile across all sheets.
+
+## Phase 2 (full captioned set, 5740 crops)
+`GRAFF_PHASE=phase2 sana/train_phase2.sh`: captions (`create_text_dataset.py --pairs`: auto labels never carry a word, only the hand labels do, ~50 % via `p_alt`)
+-> `cache.py` (Gemma embeddings trimmed to real length, ~0.7 GB instead of 16 GB; VAE in bf16, bucketed batches, DataLoader, resumable `latents.part.pt`)
+-> `train.py --config config.phase2.json` (rank 32, alpha 32, lr 5e-5, 3000 steps, 4x accumulation, **balanced sampling**: weight = min(5, kind x fill x background rarity), seeded)
+-> grids. Grids in `grids/phase2/`: `new_*.jpg` = new grid (rows kind/condition, columns non-white-on-red-brick color/background combos, invented words); `*.jpg` = old grid (white/chrome on brick).
+Result: 1.47 s/step, 74 min for 3000 steps, peak 1.36 GB allocated / 1.46 GB reserved (training); VAE caching peak 5.0 GB; text caching ~5.7 GB.
