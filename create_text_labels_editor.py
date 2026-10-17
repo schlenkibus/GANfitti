@@ -1,6 +1,9 @@
 import re
-from tkinter import *
-from PIL import Image, ImageTk
+try:
+    from tkinter import *
+    from PIL import Image, ImageTk
+except ImportError:  # only the legacy Tk code at the bottom needs these
+    pass
 import glob
 import os
 import sys

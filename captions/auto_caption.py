@@ -29,7 +29,9 @@ condition: fresh = bright, crisp paint; faded = sun-bleached, washed out, worn; 
 text: the word the piece spells, lowercase letters only; "" if you cannot read it.
 background: the surface it is painted on.
 style: 1 to 3 words describing the letter shapes.
-fill: main letter colour(s), using chrome for silver/metallic. outline: outline colour(s), [] if none. highlights: colours of small highlight details, [] if none.
+style: pick the words that really fit; most pieces are "block" or "simple", add "bubble" only for puffy inflated letters, "wildstyle" only for interlocking arrows and extensions.
+background: use "wall" for a plain painted or plastered wall, "concrete wall" only if clearly raw concrete.
+fill: the colour INSIDE the letters, normally ONE colour (white and chrome are the most common; chrome = silver/metallic). outline: the line around the letters, usually black. highlights: only for clearly separate small accent strokes or shine marks; most pieces have none, so answer [].
 
 These are labels written by hand for other photos, to show the vocabulary and level of detail:
 {examples}"""

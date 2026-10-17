@@ -7,10 +7,10 @@ import re
 
 KINDS = ["tag", "throwup", "piece", "character", "streetart", "paste_up", "stencil"]
 CONDITIONS = ["fresh", "faded", "buffed", "gone_over"]
-BACKGROUNDS = ["brick wall", "concrete wall", "wall", "stone wall", "metal", "shutters", "garage",
+BACKGROUNDS = ["brick wall", "wall", "concrete wall", "stone wall", "metal", "shutters", "garage",
                "container", "electric box", "fence", "pipe", "train", "truck", "wood", "other"]
-STYLES = ["block", "bubble", "wildstyle", "semi wildstyle", "simple", "rounded", "toy", "hollow",
-          "clean", "tag", "roll", "thick", "readable", "abstract", "character"]
+STYLES = ["block", "simple", "rounded", "bubble", "toy", "semi wildstyle", "wildstyle", "hollow",
+          "clean", "tag", "roll", "thick", "readable", "abstract", "character"]  # most frequent first (enum order biases small models)
 COLORS = ["white", "black", "chrome", "grey", "red", "orange", "yellow", "green", "light green",
           "dark green", "blue", "light blue", "dark blue", "purple", "pink", "light pink", "brown",
           "beige", "bronze", "gold", "turquoise"]
@@ -64,13 +64,13 @@ def norm_text(s: str) -> str:
 
 
 def json_schema() -> dict:
-    colors = {"type": "array", "items": {"type": "string", "enum": COLORS}, "maxItems": 3}
+    colors = {"type": "array", "items": {"type": "string", "enum": COLORS}, "maxItems": 2}
     return {
         "type": "object",
         "properties": {
             "kind": {"type": "string", "enum": KINDS},
             "condition": {"type": "string", "enum": CONDITIONS},
-            "text": {"type": "string", "maxLength": 14},
+            "text": {"type": "string", "pattern": "^[a-z0-9 .]{0,12}$"},
             "background": {"type": "string", "enum": BACKGROUNDS},
             "style": {"type": "array", "items": {"type": "string", "enum": STYLES}, "minItems": 1, "maxItems": 3},
             "fill": {**colors, "minItems": 1},

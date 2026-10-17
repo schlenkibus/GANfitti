@@ -36,8 +36,8 @@ def fill(tpl: str, d: dict) -> str:
     vals = {"CONDITION": CONDITION_WORDS.get(d.get("condition", ""), ""), "KIND": KIND_WORDS.get(d.get("kind", ""), ""),
             "STYLE": d.get("style", ""), "TEXT": d.get("text", ""), "HIGHLIGHTS": d.get("highlights", ""),
             "OUTLINE": d.get("outline", ""), "FILL": d.get("fill", ""), "BACKGROUND": d.get("background", "")}
-    if vals["BACKGROUND"] == "brick":
-        vals["BACKGROUND"] = "brick wall"
+    if vals["BACKGROUND"] in ("brick", "concrete", "metal", "stone", "wood"):
+        vals["BACKGROUND"] += " wall"
     for k, v in vals.items():
         p = p.replace(k, v)
     p = re.sub(r"\s+", " ", p).replace(" ,", ",").strip()

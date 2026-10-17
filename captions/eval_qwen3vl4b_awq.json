@@ -1,0 +1,73 @@
+{
+ "text (exact)": {
+  "agree": 2,
+  "n": 50,
+  "pct": 4.0
+ },
+ "text (fuzzy>=0.6)": {
+  "agree": 16,
+  "n": 50,
+  "pct": 32.0
+ },
+ "background (exact)": {
+  "agree": 28,
+  "n": 50,
+  "pct": 56.0
+ },
+ "style (first token)": {
+  "agree": 9,
+  "n": 49,
+  "pct": 18.4
+ },
+ "style (any overlap)": {
+  "agree": 32,
+  "n": 49,
+  "pct": 65.3
+ },
+ "fill (primary)": {
+  "agree": 24,
+  "n": 48,
+  "pct": 50.0
+ },
+ "fill (any overlap)": {
+  "agree": 27,
+  "n": 48,
+  "pct": 56.2
+ },
+ "outline (primary)": {
+  "agree": 38,
+  "n": 49,
+  "pct": 77.6
+ },
+ "outline (any overlap)": {
+  "agree": 41,
+  "n": 49,
+  "pct": 83.7
+ },
+ "highlights (empty/overlap)": {
+  "agree": 37,
+  "n": 50,
+  "pct": 74.0
+ },
+ "_meta": {
+  "model": "Qwen/Qwen3-VL-4B-Instruct-AWQ",
+  "held_out": 50,
+  "ok": 50,
+  "fails": 0,
+  "shots": [
+   "DSC03487_1",
+   "DSC03658_0",
+   "DSC03571_0",
+   "DSC03842_0",
+   "DSC03844_0",
+   "DSC03654_0",
+   "DSC03627_0",
+   "DSC03849_0",
+   "DSC03540_0",
+   "DSC03885_0",
+   "DSC03739_0",
+   "DSC03743_0"
+  ],
+  "seconds": 25.8
+ }
+}
