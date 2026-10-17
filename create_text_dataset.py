@@ -3,9 +3,11 @@
   python3 create_text_dataset.py                       # auto_labels -> ~/Development/graff-data/dataset/train
   python3 create_text_dataset.py --reviewed-only       # only labels the director accepted / fixed in the editor
 
-Templates are the original one plus `kind` and `condition`. In about half of the captions (seeded per crop)
-the real word is left out ("phrasing without it"), so the model does not only learn real names; crops
-without a readable word always use the no-word phrasing. Crops dropped by dedupe (dupes.csv) and labels
+Templates are the original one plus `kind` and `condition`. Auto-labeled crops NEVER get a word (the
+OCR guess is right only ~4 % of the time and a wrong word teaches wrong letters). Only `hand: true` labels
+(the 538 hand-labeled crops) keep the word, in about half of the captions (seeded per crop) so the model does
+not only learn real names. With --pairs, <crop>.alt.txt is written too (always the no-word phrasing) and the
+trainer picks between the two per step (sana/train.py p_alt). Crops dropped by dedupe (dupes.csv) and labels
 rejected in the editor are skipped. Nothing is copied: crops are symlinked.
 """
 import argparse, csv, json, os, random, re, zlib
@@ -45,7 +47,7 @@ def fill(tpl: str, d: dict) -> str:
 
 
 def caption(name: str, d: dict) -> str:
-    use_text = bool(d.get("text")) and random.Random(zlib.crc32(name.encode()) ^ SEED).random() >= 0.5
+    use_text = bool(d.get("hand")) and bool(d.get("text")) and random.Random(zlib.crc32(name.encode()) ^ SEED).random() >= 0.5
     return fill(BASE if use_text else NOTEXT, d)
 
 
@@ -57,6 +59,7 @@ def main() -> None:
     ap.add_argument("-o", "--outputdir", default=str(root / "train"))
     ap.add_argument("--dupes", default=str(root / "dupes.csv"))
     ap.add_argument("--reviewed-only", action="store_true")
+    ap.add_argument("--pairs", action="store_true", help="also write <crop>.alt.txt (hand labels: .txt has the word, .alt.txt not)")
     a = ap.parse_args()
     out = Path(a.outputdir)
     out.mkdir(parents=True, exist_ok=True)
@@ -74,7 +77,12 @@ def main() -> None:
         if link.is_symlink() or link.exists():
             link.unlink()
         link.symlink_to(img)
-        (out / (js.stem + ".txt")).write_text(caption(js.stem, d) + "\n", encoding="utf-8")
+        if a.pairs:
+            hand = bool(d.get("hand")) and bool(d.get("text"))
+            (out / (js.stem + ".txt")).write_text(fill(BASE if hand else NOTEXT, d) + "\n", encoding="utf-8")
+            (out / (js.stem + ".alt.txt")).write_text(fill(NOTEXT, d) + "\n", encoding="utf-8")
+        else:
+            (out / (js.stem + ".txt")).write_text(caption(js.stem, d) + "\n", encoding="utf-8")
         n += 1
     print(f"{n} pairs -> {out} ({skipped} skipped: dupes, rejected, missing or unreviewed)")
 

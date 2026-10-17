@@ -39,7 +39,9 @@ def main():
     for i, n in enumerate(names):
         t = (TRAIN_DIR / f"{n}.txt").read_text().strip()
         al = (TRAIN_DIR / f"{n}.alt.txt").read_text().strip()
-        e, m = enc([t, al])
+        e, m = enc([t, al] if t != al else [t])
+        if t == al:
+            e, m = e.repeat(2, 1, 1), m.repeat(2, 1)
         text[n] = {"text": (e[0], m[0]), "alt": (e[1], m[1])}
         if i % 100 == 0:
             print("text", i, len(names), flush=True)
@@ -47,6 +49,9 @@ def main():
     gp = grid_prompts()
     e, m = enc([p for p, _ in gp] + [NEGATIVE])
     torch.save({"embeds": e, "mask": m, "prompts": gp}, CACHE_DIR / "grid_text.pt")
+    gp2 = grid_prompts2()
+    e, m = enc([p for p, _ in gp2] + [NEGATIVE])
+    torch.save({"embeds": e, "mask": m, "prompts": gp2}, CACHE_DIR / "grid_text_new.pt")
     torch.save(text, CACHE_DIR / "text.pt")
     print("text encoder peak MB", torch.cuda.max_memory_allocated() / 2**20, flush=True)
     del pipe, text; free(); torch.cuda.reset_peak_memory_stats()

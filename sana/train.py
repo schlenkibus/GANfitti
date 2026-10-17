@@ -8,6 +8,31 @@ import bitsandbytes as bnb
 from common import *
 
 
+def sample_weights(names, cap):
+    """Per-image draw weight = min(cap, w_kind * w_fill * w_background). w_kind = max_count/count (<= cap),
+    w_fill and w_background = sqrt(max_count/count) (<= 3 and <= 2). Pushes throwup/character/tag and non-white
+    fills up; piece + white fill + wall stay at 1."""
+    import collections
+    labs = {}
+    for n in names:
+        d = json.load(open(ROOT / "auto_labels" / f"{n}.json"))
+        fill = (d.get("fill") or "").split(",")[0].strip().lower() or "none"
+        bg = (d.get("background") or "").lower().replace("brick", "brick wall").replace("concrete", "concrete wall") \
+            .replace("wall wall", "wall")
+        bg = bg if bg in ("brick wall", "concrete wall", "wall") else (bg or "none")
+        labs[n] = (d.get("kind") or "none", fill, bg)
+    w = {}
+    cnt = [collections.Counter(l[i] for l in labs.values()) for i in range(3)]
+    mx = [max(c.values()) for c in cnt]
+    for n, l in labs.items():
+        f = 1.0
+        for i in range(3):
+            r = mx[i] / cnt[i][l[i]]
+            f *= min(cap, r) if i == 0 else min((3.0, 2.0)[i - 1], r ** 0.5)
+        w[n] = min(cap, f)
+    return w, labs
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--config", default=None, help="JSON file; CLI flags override")
@@ -17,6 +42,8 @@ def main():
     ap.add_argument("--lr", type=float, default=1e-4)
     ap.add_argument("--grad_accum", type=int, default=4)
     ap.add_argument("--ckpt_every", type=int, default=250)
+    ap.add_argument("--balance", action="store_true", help="weighted sampling: rare kinds / non-white fills / rare surfaces more often")
+    ap.add_argument("--weight_cap", type=float, default=5.0)
     ap.add_argument("--p_alt", type=float, default=0.5, help="prob. of the placeholder-free caption")
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--no_grad_ckpt", action="store_true")
@@ -34,6 +61,19 @@ def main():
     lat = torch.load(CACHE_DIR / "latents.pt")
     names = sorted(lat)
     print(len(names), "images", flush=True)
+    weights = None
+    if args.balance:
+        wd, labs = sample_weights(names, args.weight_cap)
+        weights = [wd[n] for n in names]
+        import collections
+        tot = sum(weights)
+        for i, nm in enumerate(["kind", "fill", "background"]):
+            before = collections.Counter(l[i] for l in labs.values())
+            after = collections.defaultdict(float)
+            for n in names:
+                after[labs[n][i]] += wd[n] / tot
+            top = sorted(before, key=lambda k: -before[k])[:8]
+            print(nm, "share before->after:", ", ".join(f"{k} {before[k]/len(names):.0%}->{after[k]:.0%}" for k in top), flush=True)
 
     tr = SanaTransformer2DModel.from_pretrained(MODEL_ID, subfolder="transformer", torch_dtype=torch.bfloat16).to(dev)
     tr.requires_grad_(False)
@@ -60,9 +100,12 @@ def main():
     order = []
     for step in range(1, args.steps + 1):
         for _ in range(args.grad_accum):
-            if not order:
-                order = names[:]; rng.shuffle(order)
-            n = order.pop()
+            if weights:
+                n = rng.choices(names, weights)[0]
+            else:
+                if not order:
+                    order = names[:]; rng.shuffle(order)
+                n = order.pop()
             z = rng.choice(lat[n])[None].to(dev, torch.bfloat16)
             e, m = text[n]["alt" if rng.random() < args.p_alt else "text"]
             e = e[None].to(dev, torch.bfloat16); m = m[None].to(dev)
