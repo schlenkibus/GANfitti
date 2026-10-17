@@ -1,0 +1,62 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="UTF-8"><title>Auto labels review</title>
+<style>
+ body{background:#2b2f33;color:#eee;font-family:sans-serif;margin:0}
+ #bar{background:#3a7d44;padding:4px 10px;font-size:14px}
+ #main{display:flex;gap:20px;padding:12px}
+ #imgbox{flex:1;text-align:center} #imgbox img{max-width:100%;max-height:78vh}
+ #side{width:340px} label{display:block;margin-top:8px;font-size:13px;color:#9ab}
+ input,select{width:100%;padding:5px;font-size:15px;background:#1c1f22;color:#eee;border:1px solid #555}
+ input[readonly],select:disabled{opacity:.85;border-color:#333}
+ #keys{margin-top:16px;font-size:13px;color:#9ab;line-height:1.6} kbd{background:#444;padding:1px 6px;border-radius:3px}
+ #msg{margin-top:8px;color:#fc6}
+</style></head>
+<body>
+<div id="bar">loading...</div>
+<div id="main">
+ <div id="imgbox"><img id="img" src=""></div>
+ <div id="side">
+  <form id="f" autocomplete="off">
+   <label>text</label><input name="text">
+   <label>kind</label><select name="kind">{% for v in enums.kind %}<option>{{v}}</option>{% endfor %}</select>
+   <label>condition</label><select name="condition">{% for v in enums.condition %}<option>{{v}}</option>{% endfor %}</select>
+   <label>background</label><input name="background">
+   <label>style</label><input name="style">
+   <label>fill</label><input name="fill">
+   <label>outline</label><input name="outline">
+   <label>highlights</label><input name="highlights">
+  </form>
+  <div id="keys"><kbd>Enter</kbd>/<kbd>a</kbd> accept &nbsp; <kbd>e</kbd> edit (Enter saves, Esc cancels)<br>
+   <kbd>x</kbd> reject &nbsp; <kbd>s</kbd> skip &nbsp; <kbd>z</kbd> undo</div>
+  <div id="msg"></div>
+ </div>
+</div>
+<script>
+const form=document.getElementById('f'),bar=document.getElementById('bar'),msg=document.getElementById('msg');
+let cur=null,editing=false;
+function setEdit(on){editing=on;for(const el of form.elements){el.readOnly=!on;if(el.tagName=='SELECT')el.disabled=!on}
+ if(on)form.elements.text.focus();else document.activeElement.blur()}
+async function load(){
+ const r=await (await fetch('/api/current')).json();const s=r.stats;
+ const a=Object.entries(s.field_agreement_pct).map(([k,v])=>k+' '+v+'%').join(' · ');
+ bar.textContent=`reviewed ${s.reviewed}/${s.queue} (accepted ${s.accepted}, fixed ${s.fixed}, rejected ${s.rejected})  ${a}`;
+ if(r.done){document.getElementById('img').src='';cur=null;msg.textContent='Queue finished.';return}
+ cur=r.name;msg.textContent=cur+'  ('+r.left+' left)';
+ document.getElementById('img').src='/img/'+cur+'.jpg';
+ for(const k in r.label)form.elements[k].value=r.label[k];
+ setEdit(false)}
+async function post(url,body){await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body||{})});await load()}
+function labelNow(){const o={};for(const el of form.elements)o[el.name]=el.value;return o}
+document.addEventListener('keydown',e=>{
+ if(editing){if(e.key=='Enter'){e.preventDefault();post('/api/decide',{name:cur,action:'fix',label:labelNow()})}
+  else if(e.key=='Escape'){load()}return}
+ if(!cur&&e.key!='z')return;
+ if(e.key=='Enter'||e.key=='a')post('/api/decide',{name:cur,action:'accept'});
+ else if(e.key=='x')post('/api/decide',{name:cur,action:'reject'});
+ else if(e.key=='s')post('/api/decide',{name:cur,action:'skip'});
+ else if(e.key=='e'){e.preventDefault();setEdit(true)}
+ else if(e.key=='z')post('/api/undo')});
+load();
+</script></body></html>

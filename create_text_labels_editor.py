@@ -15,10 +15,17 @@ labelOutPath = ""
 
 #parse arguments
 try:
-    opts, args = getopt.getopt(sys.argv[1:],"hi:o:",["help","input_images=","output="])
+    opts, args = getopt.getopt(sys.argv[1:],"hi:o:",["help","input_images=","output=","auto=","sample=","include-hand","stats","port="])
 except getopt.GetoptError:
     print("create_text_labels_editor.py -i <input_images> -o <output>")
+    print("create_text_labels_editor.py --auto <auto_labels_dir> -i <crops> [--sample N] [--include-hand] [--port P] [--stats]")
     sys.exit(2)
+
+autoDir = None
+autoSample = 0
+autoIncludeHand = False
+autoStats = False
+autoPort = 5000
 
 for opt, arg in opts:
     if opt in ('-h', "--help"):
@@ -28,6 +35,23 @@ for opt, arg in opts:
         imageDirectoryPath = arg
     elif opt in ("-o", "--output"):
         labelOutPath = arg
+    elif opt == "--auto":
+        autoDir = arg
+    elif opt == "--sample":
+        autoSample = int(arg)
+    elif opt == "--include-hand":
+        autoIncludeHand = True
+    elif opt == "--stats":
+        autoStats = True
+    elif opt == "--port":
+        autoPort = int(arg)
+
+# "auto" queue: review machine-made labels (accept / fix / reject), see captions/review_queue.py
+if autoDir is not None:
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "captions"))
+    import review_queue
+    review_queue.run(autoDir, imageDirectoryPath, autoSample, autoIncludeHand, autoPort, autoStats)
+    sys.exit(0)
 
 print(imageDirectoryPath)
 print(labelOutPath)
@@ -94,7 +118,6 @@ def getNumTotal():
 
 from flask import Flask
 from flask.helpers import url_for
-from flask.json import JSONEncoder
 from flask import send_file, request, globals, redirect
 from flask.templating import render_template
 from flask.views import View
