@@ -20,3 +20,19 @@ Grid layout: columns = kind (tag, throw-up, piece, character, street art, paste-
 ## Phase 1 result (2000 steps, rank 32, alpha 32, lr 1e-4, 4x accumulation, batch 1)
 Peak VRAM 1.37 GB allocated / 1.46 GB reserved (training), ~2.2 GB for grid rendering; text encoder caching peaks at 5.7 GB. 1.36 s per optimizer step (4 micro-batches), 45 min total.
 Grids in `grids/`: `base_step00000.jpg` is the untouched base model, `stepNNNNN.jpg` the checkpoints. Same seed and prompt per tile across all sheets.
+
+## Phase 2 (full captioned set, 5740 crops)
+`GRAFF_PHASE=phase2 sana/train_phase2.sh`: captions (`create_text_dataset.py --pairs`: auto labels never carry a word, only the hand labels do, ~50 % via `p_alt`)
+-> `cache.py` (Gemma embeddings trimmed to real length, ~0.7 GB instead of 16 GB; VAE in bf16, bucketed batches, DataLoader, resumable `latents.part.pt`)
+-> `train.py --config config.phase2.json` (rank 32, alpha 32, lr 5e-5, 3000 steps, 4x accumulation, **balanced sampling**: weight = min(5, kind x fill x background rarity), seeded)
+-> grids. Grids in `grids/phase2/`: `new_*.jpg` = new grid (rows kind/condition, columns non-white-on-red-brick color/background combos, invented words); `*.jpg` = old grid (white/chrome on brick).
+Result: 1.47 s/step, 74 min for 3000 steps, peak 1.36 GB allocated / 1.46 GB reserved (training); VAE caching peak 5.0 GB; text caching ~5.7 GB.
+
+## Phase 3 (Sana 1.6B, kinds): `train_phase3.sh`, `config.phase3.json`, `make_captions3.py`
+Base `Sana_1600M_512px_diffusers` (Apache 2.0; same Gemma-2 encoder and DC-AE VAE as 600M, identical file hashes). Captions are kind-first and concrete
+(`common.caption3`: tag = "quick single-colour tag scrawl, thin marker-like lines, small, among other tags", throw-up = "two-colour bubble letters, fill and outline",
+piece = "full-colour piece with 3D blocks and highlights", character = "cartoon character painted next to letters"), condition second, colours / style / wall after.
+Kind weight cap 8x (kinds with < 30 crops are not boosted), tag latents re-encoded from the crop without the 3 % AOI margin and with up to 1.5x zoom jitter,
+other latents reused from phase 2. lr 4e-5, rank/alpha 32, 2000 steps, 4x accumulation, checkpoint + two grids every 250 steps (rendered in-process by `train.py --grids new,kinds`,
+because the 1.6B pipeline does not fit next to a training process in 8 GB). Grids in `grids/phase3/` (`new_*` = rows kind/condition, `kinds_*` = tag/throw-up/piece/character x 8 seeds/colours).
+Training 0.97 s/step, 32 min for 2000 steps (+23 min of grids); peak VRAM 3.45 GB allocated / 3.38 GB reserved in training, 4.3 GB while rendering grids; text caching 5.7 GB, VAE 4.2 GB.

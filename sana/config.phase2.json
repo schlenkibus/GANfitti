@@ -1,0 +1,1 @@
+{"base": "Efficient-Large-Model/Sana_600M_512px_diffusers", "steps": 3000, "rank": 32, "alpha": 32, "lr": 5e-5, "grad_accum": 4, "ckpt_every": 500, "p_alt": 0.5, "balance": true, "weight_cap": 5.0, "seed": 42}

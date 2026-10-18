@@ -13,8 +13,8 @@ Data lives outside the repo in `~/Development/graff-data/dataset/` (`crops/`, `t
 | 3. Held-out check (50 hand labels never used as few-shot) | `~/.venvs/vllm/bin/python captions/auto_caption.py --eval --tag qwen3vl2b_v2` -> `captions/eval_<tag>.json` |
 | 4. Full run (resumable: skips existing JSON) | `~/.venvs/vllm/bin/python captions/auto_caption.py --run` -> `dataset/auto_labels/` |
 | 5. Review queue | `~/.venvs/vllm/bin/python create_text_labels_editor.py --auto ~/Development/graff-data/dataset/auto_labels -i ~/Development/graff-data/dataset/crops --sample 100` |
-| 6. Training captions | `python3 create_text_dataset.py` -> `dataset/train/` (add `--reviewed-only` for checked labels) |
-| Blocklist | `python3 captions/make_blocklist.py` -> `data/blocklist.txt` |
+| 6. Training captions | `python3 create_text_dataset.py` -> `dataset/train/` (auto labels never get the word; `--pairs` also writes `.alt.txt`; `--reviewed-only` for checked labels) |
+| Blocklist | `python3 captions/make_blocklist.py` -> `data/blocklist_hand.txt` (edit distance <= 1) + `data/blocklist_auto.txt` (exact only) |
 | Stats | `python3 captions/stats.py` -> `captions/stats.json` |
 
 Stop the server when you are done (the GPU is shared; never run it next to training).
