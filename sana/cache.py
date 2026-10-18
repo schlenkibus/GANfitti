@@ -35,7 +35,7 @@ def main():
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
     dev = "cuda"
     names = sorted(p.stem for p in TRAIN_DIR.glob("*.jpg"))
-    pipe = SanaPipeline.from_pretrained(MODEL_ID, transformer=None, vae=None, torch_dtype=torch.bfloat16)
+    pipe = SanaPipeline.from_pretrained(MODEL_ID, transformer=None, vae=None, torch_dtype=torch.bfloat16, variant=VARIANT)
     pipe.text_encoder.to(dev)
 
     def enc(prompts):
@@ -47,7 +47,7 @@ def main():
                                         complex_human_instruction=default_chi())
         return e.cpu(), m.cpu()
 
-    if (CACHE_DIR / "text.pt").exists() and (CACHE_DIR / "grid_text_new.pt").exists():
+    if (CACHE_DIR / "text.pt").exists() and (CACHE_DIR / ("grid_text_kinds.pt" if PHASE == "phase3" else "grid_text_new.pt")).exists():
         print("text.pt exists, skipping the text pass", flush=True)
         del pipe; free()
     else:
@@ -62,12 +62,17 @@ def main():
             if i % 100 == 0:
                 print("text", i, len(names), flush=True)
         # prompt grid embeddings (+ empty negative) so grid rendering never needs the encoder again
-        gp = grid_prompts()
-        e, m = enc([p for p, _ in gp] + [NEGATIVE])
-        torch.save({"embeds": e, "mask": m, "prompts": gp}, CACHE_DIR / "grid_text.pt")
-        gp2 = grid_prompts2()
-        e, m = enc([p for p, _ in gp2] + [NEGATIVE])
-        torch.save({"embeds": e, "mask": m, "prompts": gp2}, CACHE_DIR / "grid_text_new.pt")
+        if PHASE == "phase3":
+            for gname, gp in (("new", grid_prompts3()), ("kinds", grid_prompts_kinds())):
+                e, m = enc([p for p, _ in gp] + [NEGATIVE])
+                torch.save({"embeds": e, "mask": m, "prompts": gp}, CACHE_DIR / f"grid_text_{gname}.pt")
+        else:
+            gp = grid_prompts()
+            e, m = enc([p for p, _ in gp] + [NEGATIVE])
+            torch.save({"embeds": e, "mask": m, "prompts": gp}, CACHE_DIR / "grid_text.pt")
+            gp2 = grid_prompts2()
+            e, m = enc([p for p, _ in gp2] + [NEGATIVE])
+            torch.save({"embeds": e, "mask": m, "prompts": gp2}, CACHE_DIR / "grid_text_new.pt")
         torch.save(text, CACHE_DIR / "text.pt")
         print("text encoder peak MB", torch.cuda.max_memory_allocated() / 2**20, flush=True)
         del pipe, text; free(); torch.cuda.reset_peak_memory_stats()
@@ -75,10 +80,18 @@ def main():
 
     from diffusers import AutoencoderDC
     import numpy as np
-    vae = AutoencoderDC.from_pretrained(MODEL_ID, subfolder="vae", torch_dtype=torch.bfloat16).to(dev)
+    vae = AutoencoderDC.from_pretrained(MODEL_ID, subfolder="vae", torch_dtype=torch.bfloat16, variant=VARIANT).to(dev)
     sf = vae.config.scaling_factor
     part_f = CACHE_DIR / "latents.part.pt"
     lat = torch.load(part_f) if part_f.exists() else {}
+    tags = set()
+    if PHASE == "phase3":  # same VAE as phase 2 -> reuse its latents; only tags are re-encoded (tight crop, stronger zoom)
+        import json
+        tags = {n for n in names if json.load(open(ROOT / "auto_labels" / f"{n}.json")).get("kind") == "tag"}
+        if not lat:
+            old = torch.load(ROOT / "cache" / "phase2" / "latents.pt")
+            lat = {n: old[n] for n in names if n in old and n not in tags}
+            del old
     todo = [n for n in names if n not in lat]
     print("vae: done", len(lat), "todo", len(todo), flush=True)
 
@@ -93,8 +106,13 @@ def main():
             w, h = img.size
             bw, bh = nearest_bucket(w, h)
             vs = []
+            tight = n in tags
+            if tight:  # drop the 3 % AOI margin that recrop.py added on each side: inner 1/1.06 of the crop
+                mx, my = round(w * 0.03 / 1.06), round(h * 0.03 / 1.06)
+                img = img.crop((mx, my, w - mx, h - my)); w, h = img.size
+                bw, bh = nearest_bucket(w, h)
             for v in range(a.variants):
-                jit = 1.0 if v == 0 else rng.uniform(1.0, 1.25)
+                jit = 1.0 if v == 0 else rng.uniform(1.0, 1.5 if tight else 1.25)
                 s = max(bw / w, bh / h) * jit
                 rw, rh = max(bw, round(w * s)), max(bh, round(h * s))
                 im = img.resize((rw, rh), Image.LANCZOS)
@@ -110,6 +128,8 @@ def main():
     by_b = {}
     for i, n in enumerate(todo):
         w, h = Image.open(TRAIN_DIR / f"{n}.jpg").size
+        if n in tags:
+            w, h = w - 2 * round(w * 0.03 / 1.06), h - 2 * round(h * 0.03 / 1.06)
         by_b.setdefault(nearest_bucket(w, h), []).append(i)
     batches = [idx[j:j + 8] for idx in by_b.values() for j in range(0, len(idx), 8)]
     dl = torch.utils.data.DataLoader(DS(), batch_sampler=batches, num_workers=4, collate_fn=lambda b: b)
